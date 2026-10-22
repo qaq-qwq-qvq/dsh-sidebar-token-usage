@@ -11,19 +11,27 @@ DSH Web GUI 侧边栏 token 用量插件。
 
 ## 示例
 
-> 以下为示意图，使用示例数据，不是真实会话截图。
+> 悬停卡那张为示意图（示例数据）；底部卡片与设置页为实拍图，当前会话标题已替换为「示例会话」。
 
-### 会话行胶囊与悬停卡
+### 会话行胶囊与悬停卡（示意图）
 
 ![会话行胶囊与悬停卡](docs/images/session-hover.png)
 
-### 侧边栏底部与本轮用量明细
+### 侧边栏底部：收起态
 
-![侧边栏底部卡片与本轮用量明细](docs/images/footer-latest.png)
+![侧边栏底部收起态](docs/images/footer-collapsed.png)
+
+### 侧边栏底部：展开明细
+
+![侧边栏底部展开明细](docs/images/footer-detail.png)
 
 ### 设置页：选项与实时预览
 
-![设置页选项与实时预览](docs/images/settings-preview.png)
+![设置页选项与实时预览](docs/images/settings-options.png)
+
+### 设置页：价格表
+
+![设置页价格表](docs/images/settings-pricing.png)
 
 ## 数据来源
 

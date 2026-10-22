@@ -1,6 +1,6 @@
-{
+﻿{
   "name": "dsh-sidebar-token-usage",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "DSH Web GUI sidebar token usage: per-session totals, a hover breakdown, an all-sessions footer card with the current Session and its latest Turn usage/price, plus an expandable Turn detail.",
   "type": "module",
   "main": "lib/index.js",
@@ -14,7 +14,7 @@
     "docs",
     "cordis.patch.yml",
     "README.md",
-    "使用说明.md"
+    "浣跨敤璇存槑.md"
   ],
   "license": "MIT",
   "dsh": {
@@ -26,3 +26,4 @@
     }
   }
 }
+
