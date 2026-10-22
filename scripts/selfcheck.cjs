@@ -550,6 +550,16 @@ hookIndex = 0;
 assert.strictEqual(badgeValue(leading.Component({ ...leadingProps, sessionId: "alice", t })), "1.8K", "switching back restores the token count");
 
 // The footer main figure follows the same choice.
+const footCostHint = (card) => {
+  const right = card.children[0].children[1];
+  for (const node of right.children) {
+    if (node && node.props && node.props["data-stu-cost-hint"] !== undefined) return node;
+  }
+  return undefined;
+};
+const tokenFoot = renderFoot();
+assert.match(String(footCostHint(tokenFoot).children), /^\u2248\u00a5/, "the token total carries the window's estimated cost");
+
 settingsProps.setChoice("footMetric", "cost");
 const costFoot = renderFoot();
 // The main line now nests the figure in a right-hand group so the ring can sit beside it.
@@ -565,6 +575,7 @@ const footTotal = (card) => {
 const costTotal = footTotal(costFoot);
 assert.strictEqual(costTotal.props["data-metric"], "cost");
 assert.match(String(costTotal.children), /^\u00a5/, "the footer total renders CNY, got " + costTotal.children);
+assert.strictEqual(footCostHint(costFoot), undefined, "the main figure is already the cost, so no duplicate hint");
 settingsProps.setChoice("footMetric", "tokens");
 assert.strictEqual(footTotal(renderFoot()).children, "1.8K", "switching back restores the compact token total");
 
