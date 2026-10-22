@@ -1,0 +1,4 @@
+# dsh-sidebar-token-usage bundle patch: inserts its plugin row into the web plugin roster.
+- insert:
+    - id: sidebar-token-usage
+      name: dsh-sidebar-token-usage
