@@ -364,9 +364,13 @@ const currentRow = byClass(currentLine, "stu-foot-current-row");
 assert.ok(currentRow !== undefined, "the current Session row keeps its own layout box");
 const currentTitleNode = byClass(currentRow, "stu-foot-current-title");
 const currentValueNode = byClass(currentRow, "stu-foot-current-value");
+const currentPriceNode = byClass(currentRow, "stu-foot-current-price");
 assert.strictEqual(currentRow.children[0].children, dict["foot.current"]);
 assert.strictEqual(currentTitleNode, undefined, "a Session without a title renders no title node");
-assert.match(String(currentValueNode.children), /^1\.8K( \u00b7 \u00a5)?/, "the current line shows that Session's own usage");
+assert.match(String(currentValueNode.children), /^1\.8K$/, "the current line shows that Session's own usage");
+assert.ok(currentPriceNode !== undefined, "the current cost gets its own trailing cell");
+assert.match(String(currentPriceNode.children), /^\u00a5/, "the current cost renders CNY, got " + currentPriceNode.children);
+assert.strictEqual(currentRow.children[currentRow.children.length - 1], currentPriceNode, "prices sit in the last column");
 assert.strictEqual(byClass(currentLine, "stu-foot-latest-row"), undefined, "no latest line while no Host reading is available");
 
 // With a latest settlement the collapsed face shows the compact chip + price.
