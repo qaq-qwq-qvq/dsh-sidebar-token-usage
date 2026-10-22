@@ -903,12 +903,13 @@ async function resolvedHover(sessionId) {
   const { pathToFileURL } = require("node:url");
   const host = await import(pathToFileURL(path.join(__dirname, "..", "lib", "index.js")).href);
   assert.strictEqual(typeof host.apply, "function");
-  assert.deepStrictEqual(host.inject, ["sessionQuery", "webServer"]);
+  assert.deepStrictEqual(host.inject, ["sessionQuery", "webServer", "credentials"]);
 
   const routes = [];
   const hostCtx = {
     effect: (fn) => { fn(); },
-    webServer: { register: (value) => { routes.push(value); return () => {}; } }
+    webServer: { register: (value) => { routes.push(value); return () => {}; } },
+    credentials: { readRecord: async () => undefined }
   };
   const log = {
     events: [
@@ -942,7 +943,47 @@ async function resolvedHover(sessionId) {
   if (balanceBody.ok === true) {
     assert.strictEqual(typeof balanceBody.balance.amount, "number");
     assert.strictEqual(typeof balanceBody.balance.currency, "string");
+    assert.strictEqual(balanceBody.balance.source, "record", "without a grant the route falls back to the recorded ledger");
   }
+
+  // A stored Platform grant turns the same route into the live wallet probe.
+  const platformRoutes = [];
+  const platformCalls = [];
+  const savedFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    platformCalls.push({ url: String(url), token: init?.headers?.["x-dsh-auth-token"] });
+    return {
+      ok: true,
+      json: async () => ({
+        data: {
+          biz_data: {
+            normal_wallets: [{ currency: "CNY", balance: "2.5" }],
+            bonus_wallets: [{ currency: "CNY", balance: "0.25" }]
+          }
+        }
+      })
+    };
+  };
+  host.apply({
+    effect: (fn) => { fn(); },
+    webServer: { register: (value) => { platformRoutes.push(value); return () => {}; } },
+    credentials: {
+      readRecord: async (key) => (key === "deepseek-account-platform/default" ? { kind: "grant", payload: { token: "test-grant" } } : undefined)
+    },
+    sessionQuery: { readSession: async () => ({ events: [] }) }
+  });
+  const platformBalanceRoute = platformRoutes.find((value) => value.path === "/api/sidebar-token-usage/balance");
+  const platformAnswer = await callRoute(platformBalanceRoute, "/api/sidebar-token-usage/balance");
+  const platformBody = JSON.parse(platformAnswer.body);
+  assert.strictEqual(platformBody.ok, true);
+  assert.strictEqual(platformBody.balance.source, "platform");
+  assert.strictEqual(platformBody.balance.amount, 2.75, "normal and bonus wallets are summed");
+  assert.strictEqual(platformBody.balance.currency, "CNY");
+  assert.strictEqual(platformBody.balance.normal, 2.5);
+  assert.strictEqual(platformBody.balance.bonus, 0.25);
+  assert.match(platformCalls[0].url, /^https:\/\/platform\.deepseek\.com\/api\/v0\/users\/get_user_summary$/, "the Platform wallet endpoint is used");
+  assert.strictEqual(platformCalls[0].token, "test-grant", "the stored grant rides the Platform header");
+  globalThis.fetch = savedFetch;
 
   const answered = await callRoute(route, "/api/sidebar-token-usage/models?session=s1");
   assert.strictEqual(answered.status, 200);

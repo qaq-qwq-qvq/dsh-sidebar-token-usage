@@ -7,7 +7,7 @@ DSH Web GUI 侧边栏 token 用量插件。
 
 - **会话行内常驻**：`sidebar.session.row.leading` 显示该会话累计 token 总量（`1.2K` / `345K` / `1.2M`），蓝色圆角胶囊。
 - **会话行悬停卡**：`sidebar.session.row.hover` 展开输入 / 输出 / 缓存读 / 缓存写 / 上下文占用，并按模型列出各自用量。
-- **侧边栏底部**：`sidebar.footer.action` 显示全部会话合计总量，收起时再带当前会话（标题 + 该会话用量/费用）、最新一轮（Turn）的「用量 X tok」胶囊 + 价格，以及最近记录的余额；点胶囊在 `shell.overlay` 弹出本轮明细（提供方/模型、缓存命中、四项 bucket），按设置鼠标移入或点击展开会话数与分项合计；侧边栏折叠（56px 轨道）时自动切换为紧凑态。
+- **侧边栏底部**：`sidebar.footer.action` 显示全部会话合计总量，收起时再带当前会话（标题 + 该会话用量/费用）、最新一轮（Turn）的「用量 X tok」胶囊 + 价格，以及每 60 秒探测的账号余额；点胶囊在 `shell.overlay` 弹出本轮明细（提供方/模型、缓存命中、四项 bucket），按设置鼠标移入或点击展开会话数与分项合计；侧边栏折叠（56px 轨道）时自动切换为紧凑态。
 
 ## 示例
 
@@ -144,15 +144,19 @@ DSH Web GUI 侧边栏 token 用量插件。
 
 ### 余额
 
-底部卡片可以显示**余额**，但必须说清它的性质：
+底部卡片显示**登录账号的 Platform 钱包余额**，每 60 秒探测一次：
 
-- 数据来自本机 `~/.dsh/.dshw-usage.json` 里别的插件写下的**最近一次记录**，不是实时查询
-- 当前机器上的记录是 `¥5.088495`，时间 `2026-10-20 18:07`（卡片上会带上这个时间）
-- 没有实时通道：账户是登录态（`deepseek-account`），而余额接口需要 API Key；
-  已装的 `@linxin666/dsh-usage` 有余额探测能力，但它在你的 profile 里是 `disabled: true`
-- 想要实时余额，两条路：启用 `@linxin666/dsh-usage`，或配置 DeepSeek API Key
+- 宿主从 `@deepseek-ai/dsh-credentials` 读取浏览器登录留下的 grant
+  （`deepseek-account-platform/default`），请求
+  `GET https://platform.deepseek.com/api/v0/users/get_user_summary`，
+  读取 `normal_wallets` + `bonus_wallets`（同币种相加）。这是 DSH 账号页用的同一套接口，
+  不需要 API Key
+- 宿主侧缓存 60 秒；页面每 60 秒拉一次 `/api/sidebar-token-usage/balance`
+- 探测失败（grant 过期、断网、协议变化）时退回 `~/.dsh/.dshw-usage.json` 的旧记录，
+  悬停提示会标注「旧记录」
+- grant 只在宿主进程内使用，不下发到浏览器；过期后需重新登录 DeepSeek 账号
 
-开关项：`余额（最近记录，非实时）`，默认开。
+开关项：`余额（每 60 秒刷新）`，默认开。
 
 
 只有**有价格信息的路由**才显示费用，其余完全不显示（不显示 0，也不显示占位符）。
