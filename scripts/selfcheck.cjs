@@ -474,7 +474,7 @@ const renderFoot = () => {
 };
 /** The 会话数 value from the main list. */
 const sessionCountOf = (tree) => {
-  const detail = tree.children.find((node) => node.props && node.props.className === "stu-foot-detail");
+  const detail = tree.children.find((node) => node !== null && node.props && node.props.className === "stu-foot-detail");
   return detail.children[1].children.map((node) => node.children)[1];
 };
 /** The collapsed face's label, which names the active range. */
