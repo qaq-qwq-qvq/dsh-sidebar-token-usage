@@ -154,7 +154,14 @@ assert.deepStrictEqual(
   "zh/en dictionaries must share a key set"
 );
 
-const byName = new Map(registrations.map((entry) => [entry.name, entry.registration]));
+// A slot can now hold more than one registration from this plugin (the footer
+// carries both the usage card and the restart control), so the assertions below
+// target the primary registration by id.
+const byName = new Map();
+for (const entry of registrations) {
+  if (entry.registration.definition.id !== "sidebar-token-usage") continue;
+  if (!byName.has(entry.name)) byName.set(entry.name, entry.registration);
+}
 for (const name of ["sidebar.session.row.leading", "sidebar.session.row.hover", "sidebar.footer.action"]) {
   assert.ok(byName.has(name), "missing slot registration: " + name);
   assert.strictEqual(byName.get(name).definition.id, "sidebar-token-usage");
@@ -598,7 +605,7 @@ settingsProps.setChoice("footerRange", "all");
 
 // ---- style lifecycle ----------------------------------------------------------
 assert.strictEqual(styleTags.length, 0);
-assert.strictEqual(effects.length, 2, "one dictionary effect and one style effect");
+assert.strictEqual(effects.length, 3, "dictionary, style, and compact-header attribute effects");
 for (const effect of effects) {
   if (typeof effect.disposer === "function") effect.disposer();
 }
@@ -676,7 +683,25 @@ async function resolvedHover(sessionId) {
 
   // ---- context ring / click popover / latest detail ---------------------------
   const shells = registrations.filter((entry) => entry.name === "shell.overlay");
-  assert.strictEqual(shells.length, 2, "the session popover and the latest detail ride shell.overlay");
+  assert.strictEqual(
+    shells.length,
+    4,
+    "the session popover, the latest detail, the restart menu, and the icon tooltip ride shell.overlay"
+  );
+  for (const id of ["sidebar-token-usage-restart-menu", "sidebar-token-usage-tip"]) {
+    assert.ok(
+      shells.some((entry) => entry.registration.definition.id === id),
+      "missing overlay registration: " + id
+    );
+  }
+  const restartControl = registrations.find((entry) =>
+    entry.name === "sidebar.footer.action" && entry.registration.definition.id === "sidebar-token-usage-restart");
+  assert.ok(restartControl !== undefined, "the restart control rides the sidebar footer slot");
+  assert.strictEqual(
+    restartControl.registration.definition.inject().hooks.tip === undefined,
+    true,
+    "the restart control does not need the tooltip store"
+  );
   const popReg = shells.find((entry) => entry.registration.definition.id === "sidebar-token-usage-popover");
   assert.ok(popReg !== undefined, "the overlay registration carries its own id");
 
@@ -914,6 +939,37 @@ async function resolvedHover(sessionId) {
   assert.strictEqual(sectionOf(await resolvedHover("alice"), "cost"), undefined, "a route outside the price list shows no cost");
   settingsProps.setProviders("deepseek-account, deepseek-official, llm-deepseek");
 
+  // ---- user-added model rows --------------------------------------------------
+  // The table reserves a row for any other model: adding one appends six inputs,
+  // its own match string, and a remove control, and the match drives billing.
+  const addedId = settingsProps.addModel("demo-model");
+  hookStates = [];
+  hookIndex = 0;
+  const addedTree = settings.Component({ ...settingsProps, t });
+  const rowIds = [];
+  const addedInputs = [];
+  walk(addedTree, (node) => {
+    if (node && node.props && typeof node.props["data-stu-price-row"] === "string") rowIds.push(node.props["data-stu-price-row"]);
+    if (node && node.props && typeof node.props["data-stu-price"] === "string" && node.props["data-stu-price"].indexOf(addedId + ".") === 0) addedInputs.push(node.props["data-stu-price"]);
+  });
+  assert.deepStrictEqual(rowIds, ["flash", "pro", addedId], "the added model becomes a third row");
+  assert.strictEqual(addedInputs.length, 6, "a custom row exposes three columns by two tiers");
+  assert.strictEqual(Number(byKey("flash.cacheHit.peak").props.value), 0.04, "built-in rows keep their amounts");
+
+  settingsProps.setMatch(addedId, "demo-model");
+  settingsProps.setPrice(addedId, "inputMiss", "offPeak", 1000);
+  settingsProps.setPrice(addedId, "inputMiss", "peak", 1000);
+
+  settingsProps.removeModel(addedId);
+  hookStates = [];
+  hookIndex = 0;
+  const removedTree = settings.Component({ ...settingsProps, t });
+  const removedRows = [];
+  walk(removedTree, (node) => {
+    if (node && node.props && typeof node.props["data-stu-price-row"] === "string") removedRows.push(node.props["data-stu-price-row"]);
+  });
+  assert.deepStrictEqual(removedRows, ["flash", "pro"], "removing the custom row restores the published table");
+
   // ---- host half --------------------------------------------------------------
   const { pathToFileURL } = require("node:url");
   const host = await import(pathToFileURL(path.join(__dirname, "..", "lib", "index.js")).href);
@@ -940,8 +996,15 @@ async function resolvedHover(sessionId) {
 
   assert.deepStrictEqual(
     routes.map((value) => value.path).sort(),
-    ["/api/sidebar-token-usage/balance", "/api/sidebar-token-usage/diag", "/api/sidebar-token-usage/latest", "/api/sidebar-token-usage/models"],
-    "the host half serves models, the latest exchange, balance and the layout diagnostic"
+    [
+      "/api/sidebar-token-usage/balance",
+      "/api/sidebar-token-usage/diag",
+      "/api/sidebar-token-usage/latest",
+      "/api/sidebar-token-usage/models",
+      "/api/sidebar-token-usage/restart",
+      "/api/sidebar-token-usage/restart-status"
+    ],
+    "the host half serves models, the latest exchange, balance, the layout diagnostic, and the restart pair"
   );
   const route = routes.find((value) => value.path === "/api/sidebar-token-usage/models");
   const latestRoute = routes.find((value) => value.path === "/api/sidebar-token-usage/latest");

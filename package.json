@@ -1,12 +1,16 @@
 {
   "name": "dsh-sidebar-token-usage",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "DSH Web GUI sidebar token usage: per-session totals, a hover breakdown, an all-sessions footer card with the current Session and its latest Turn usage/price, plus an expandable Turn detail.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
-    ".": { "default": "./lib/index.js" },
-    "./client": { "default": "./lib/client.js" },
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -18,12 +22,18 @@
   ],
   "license": "MIT",
   "dsh": {
-    "engines": { "dsh": ">=0.2.1-rc.2" },
-    "bundle": { "patch": "./cordis.patch.yml" },
+    "engines": {
+      "dsh": ">=0.2.1-rc.2"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
     "client": {
-      "inject": ["@deepseek-ai/dsh-client-locale", "@deepseek-ai/dsh-client-ui-slots"],
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ],
       "platform": "web"
     }
   }
 }
-

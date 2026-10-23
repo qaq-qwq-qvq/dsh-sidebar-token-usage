@@ -8,10 +8,16 @@ DSH Web GUI 侧边栏 token 用量插件。
 - **会话行内常驻**：`sidebar.session.row.leading` 显示该会话累计 token 总量（`1.2K` / `345K` / `1.2M`），蓝色圆角胶囊。
 - **会话行悬停卡**：`sidebar.session.row.hover` 展开输入 / 输出 / 缓存读 / 缓存写 / 上下文占用，并按模型列出各自用量。
 - **侧边栏底部**：`sidebar.footer.action` 显示全部会话合计总量（显示用量时并在其后给出该范围的 `≈¥` 估算费用，与用量同样蓝色加粗），收起时再带当前会话（标题 + 用量）、最新一轮（Turn）的「本轮用量 X tok」胶囊、每 60 秒探测的账号余额；所有价格都放在最右一列右对齐，余额价格加粗放大，且收起/展开时都留在第四行（展开明细里不再重复）；点胶囊在 `shell.overlay` 弹出本轮明细（提供方/模型、缓存命中、四项 bucket），按设置鼠标移入或点击展开会话数与分项合计；侧边栏折叠（56px 轨道）时自动切换为紧凑态。
+- **侧边栏整理（可在设置里开关）**：把「新会话」上方的全局面板收成一行图标（悬停显示原名，远程面板的未读数变成图标右上角小红点），行尾固定一个重启按钮：点开是「重载界面」（`location.reload()`，加载刚装的界面插件、不打断对话）和「重启应用」（宿主侧拉起脚本，整棵树关掉再启动同一个 exe；非桌面版只显示不可用，不会误杀终端）。开关写入 localStorage 的同一份设置，关掉即恢复原来的多行列表。
+- **设置页分类**：设置项按「会话行 / 侧边栏底部 / 侧边栏整理 / 价格」分 tab，写法参考 `dsh-bili-scroll` 的 tab 分栏。
 
 ## 示例
 
-> 以下均为实拍图；会话标题与账户余额已打马赛克。
+> 侧边栏相关的几张是实拍图（会话标题与账户余额已打马赛克）；设置页两张按当前布局绘制，是示意图。
+
+### 侧边栏顶部：一行图标 + 行尾重启
+
+![侧边栏顶部](docs/images/sidebar-chrome.png)
 
 ### 会话行胶囊与浮层明细
 
@@ -25,18 +31,17 @@ DSH Web GUI 侧边栏 token 用量插件。
 
 ![侧边栏底部展开明细](docs/images/footer-detail.png)
 
-### 设置页：选项与实时预览
+### 设置页：tab 分栏与实时预览（示意）
 
 ![设置页选项与实时预览](docs/images/settings-options.png)
 
-### 设置页：价格表
+### 设置页：价格表，含自建模型行（示意）
 
 ![设置页价格表](docs/images/settings-pricing.png)
 
 ## 数据来源
 
 合计数据只读内存中的客户端投影，不轮询、不在启动时建索引：
-
 - `ctx.sessions.list.getSnapshot()` → `{ ids, byId }`
 - `byId[id].projectionValues.tokenUsage` → `{ uncachedInputTokens, outputTokens, cacheReadTokens, cacheWriteTokens }`
 - `byId[id].projectionValues.contextPressure` → `{ pressureTokens?, projectedTokens?, contextWindow? }`
@@ -136,9 +141,11 @@ DSH Web GUI 侧边栏 token 用量插件。
 
 ### 价格表可编辑
 
-设置页底部是价格表编辑器，12 个数字框（flash / v4-pro 两行 × 缓存命中/输入未命中/输出 三列 × 闲时/高峰 两档），
-外加一个「计价路由」文本框（逗号分隔）。默认值就是 DeepSeek 官方价目表，改动即时生效并持久化到
-`localStorage` 的 `dsh-sidebar-token-usage:prices`。
+设置页「价格」tab 是一张对齐的表：每行一个模型，列为 缓存命中 / 输入未命中 / 输出 × 闲时 / 高峰
+（CNY / 百万 token），行首是该模型的名字与**匹配串**（模型名包含它就归这一行，越具体的匹配越先命中，
+空匹配不计费）。内置 `deepseek-flash`、`deepseek-v4-pro` 两行预填官方价；底部「添加模型」可以随手加一行
+（默认全 0，填好名字/匹配串/价格后即参与计费），自建行行尾 `×` 删除，「恢复官方价」把整张表还原成官方价目表。
+改动即时生效并持久化到 `localStorage` 的 `dsh-sidebar-token-usage:prices`（旧的两行结构会自动迁移）。
 
 改价之后所有费用显示（会话悬停、按模型、底部合计）立刻按新价重算。
 
